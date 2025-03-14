@@ -34,6 +34,7 @@ import copy
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
+from django.db.models import Q
 from django.db.models import signals
 from django.template import Engine, Template
 from django.template.base import TemplateSyntaxError
@@ -44,6 +45,7 @@ from djangoplicity.translation.fields import TranslationManyToManyField, Transla
 from djangoplicity.translation.models import TranslationModel, translation_reverse
 from django.utils.translation import ugettext_lazy as _
 from djangoplicity.blog.validators import validate_string_template
+from djangoplicity.metadata.models import Program
 
 class BlogTranslationProxyMixin(object):
     def validate_unique(self, exclude=None):
@@ -138,6 +140,8 @@ class Post(ArchiveModel, TranslationModel):
     numbers_box = models.TextField(blank=True)
     profile = models.TextField(blank=True)
     links = models.TextField(blank=True)
+    is_e_and_e = models.BooleanField( default=False, verbose_name=_('Is E&E'), help_text=_('Check this if the announcement is for the special E&E category and newsletter') )
+    programs = TranslationManyToManyField(Program, limit_choices_to=Q(types__name__iexact='Announcements'), blank=True, only_sources=True)
 
     class Meta:
         ordering = ('-release_date', )
@@ -161,6 +165,7 @@ class Post(ArchiveModel, TranslationModel):
                 ('blog_post', 'source_id'),
                 ('blog_authordescription', 'post_slug'),
                 ('blog_post_tags', 'post_slug'),
+                ('blog_post_programs', 'post_slug'),
             )
             clean_html_fields = ['body', 'discover_box', 'numbers_box', 'profile', 'links']
 

@@ -101,6 +101,16 @@ class PostAdmin(dpadmin.DjangoplicityModelAdmin, CleanHTMLAdmin, RenameAdmin, Se
         )
     )
 
+    def get_actions(self, request):
+        """
+        Dynamically add admin actions for setting the programs
+        """
+        actions = super(PostAdmin, self).get_actions(request)
+        actions.update(
+            dict([self._make_program_action(c) for c in Program.objects.filter(
+                types__name='post').order_by('name')]))
+        return actions
+
 def view_online_translation_post(post):
     return format_html('<a href="{}?lang={}">View online</a>', post.get_absolute_url(), post.lang)
 

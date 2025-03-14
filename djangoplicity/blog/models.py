@@ -34,7 +34,6 @@ import copy
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import models
-from django.db.models import Q
 from django.db.models import signals
 from django.template import Engine, Template
 from django.template.base import TemplateSyntaxError
@@ -140,8 +139,8 @@ class Post(ArchiveModel, TranslationModel):
     numbers_box = models.TextField(blank=True)
     profile = models.TextField(blank=True)
     links = models.TextField(blank=True)
-    is_e_and_e = models.BooleanField( default=False, verbose_name=_('Is E&E'), help_text=_('Check this if the announcement is for the special E&E category and newsletter') )
-    programs = TranslationManyToManyField(Program, limit_choices_to=Q(types__name__iexact='Announcements'), blank=True, only_sources=True)
+    is_e_and_e = models.BooleanField( default=False, verbose_name=_('Is E&E'), help_text=_('Check this if the post is for the special E&E category and newsletter') )
+    programs = TranslationManyToManyField(Program, blank=True, only_sources=True)
 
     class Meta:
         ordering = ('-release_date', )

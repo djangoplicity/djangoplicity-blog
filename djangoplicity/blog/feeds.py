@@ -33,6 +33,7 @@ from djangoplicity.archives.feeds import DjangoplicityArchiveFeed
 from django.conf import settings
 from djangoplicity.blog.models import Post
 from djangoplicity.blog.options import PostOptions
+from djangoplicity.archives.utils import get_resource_size
 
 BLOG_TITLE = settings.BLOG_TITLE if hasattr( settings, 'BLOG_TITLE' ) else 'Blog'
 BLOG_DESCRIPTION = settings.BLOG_DESCRIPTION if hasattr( settings, 'BLOG_DESCRIPTION' ) else ''
@@ -52,13 +53,17 @@ class PostFeed(DjangoplicityArchiveFeed):
         items_to_display = 10
 
     def item_enclosure_url(self, item):
-        return item.banner.resource_screen.absolute_url
+        if item.banner and item.banner.resource_screen:
+            return item.banner.resource_screen.absolute_url
+        return None
 
     def item_enclosure_length(self, item):
-        size = item.banner.resource_screen.size
-        if not item.banner.resource_screen.closed:
-            item.banner.resource_screen.close()
-        return size
+        if item.banner and item.banner.resource_screen:
+            size = get_resource_size(item.banner, item.banner.resource_screen)
+            if not getattr(item.banner.resource_screen, 'is_from_content_server', False) and not item.banner.resource_screen.closed:
+                item.banner.resource_screen.close()
+            return size
+        return None
 
     def item_enclosure_mime_type(self, item):
         return 'image/jpeg'

@@ -31,7 +31,7 @@
 
 from django.utils.translation import ugettext_noop as _
 
-from djangoplicity.archives.contrib.browsers import ListBrowser
+from djangoplicity.archives.contrib.browsers import ListBrowser, SerializationBrowser
 from djangoplicity.archives.contrib.queries.defaults import AllPublicQuery, \
     EmbargoQuery
 from djangoplicity.archives.options import ArchiveOptions
@@ -39,6 +39,16 @@ from djangoplicity.archives.options import ArchiveOptions
 from djangoplicity.blog.queries import PostTagQuery
 from djangoplicity.blog.models import Tag
 from djangoplicity.blog.views import PostDetailView
+
+
+
+from djangoplicity.archives.contrib.queries.defaults import AdvancedSearchQuery
+from djangoplicity.archives.contrib.search.fields import DateSinceSearchField, DateUntilSearchField, IdSearchField, TextSearchField
+from djangoplicity.archives.contrib.serialization import JSONEmitter
+from djangoplicity.archives.views import SerializationDetailView
+from .models import Post
+from .queries import PostsAllPublicQuery, PostsEAndEQuery, PostsProgramsQuery
+from .serializers import PostSerializer
 
 
 class PostOptions(ArchiveOptions):
@@ -74,3 +84,33 @@ class PostOptions(ArchiveOptions):
         return {
             '': PostFeed,
         }
+
+
+class BlogPostOptions(ArchiveOptions):
+    urlname_prefix = 'blogs'
+
+    search_fields = ('slug', 'title', 'lede', 'body')
+
+    class Queries:
+        default = PostsAllPublicQuery(browsers=('normal', 'json'), verbose_name=_(("Blog Posts")), feed_name="default")
+        e_and_e = PostsEAndEQuery(browsers=('normal', 'json'), verbose_name=_(("E&E Blog Posts")))
+        program = PostsProgramsQuery(relation_field='programs', browsers=('normal', 'json'), verbose_name=_(("Blog Posts by Program")))
+        search = AdvancedSearchQuery(browsers=('normal', 'json'), verbose_name=_(("Advanced Blog Search")), searchable=False)
+
+    class Browsers:
+        normal = ListBrowser(verbose_name=_(('View all')), paginate_by=100)
+        json = SerializationBrowser(serializer=PostSerializer, emitter=JSONEmitter, paginate_by=20, display=False, verbose_name=_(("JSON")))
+
+    detail_views = (
+        { 'url_pattern': 'api/(?P<serializer>json)/', 'view': SerializationDetailView(serializer=PostSerializer, emitters=[JSONEmitter]), 'urlname_suffix': 'serialization' },
+    )
+
+    class AdvancedSearch:
+        slug = TextSearchField(label=_(('Post Slug')), model_field='slug')
+        published_since = DateSinceSearchField(label=_(("Published since")), model_field='release_date')
+        published_until = DateUntilSearchField(label=_(("Published until")), model_field='release_date')
+        title = TextSearchField(label=_(("Title")), model_field='title')
+        body = TextSearchField(label=_(("Body")), model_field='body')
+
+        class Meta:
+            verbose_name = _(("Advanced Blog Search"))

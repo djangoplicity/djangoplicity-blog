@@ -36,6 +36,9 @@ from django.db.models import Q
 
 from datetime import datetime
 
+from djangoplicity.archives.contrib.queries import AllPublicQuery
+from djangoplicity.metadata.archives.queries import ProgramPublicQuery
+
 
 class PostTagQuery(CategoryQuery):
     '''
@@ -46,3 +49,33 @@ class PostTagQuery(CategoryQuery):
         qs, categories = super(PostTagQuery, self).queryset(model, options, request, stringparam)
 
         return (qs.filter(Q(release_date__lte=datetime.now()) | Q(release_date__isnull=True)), categories)
+
+
+class PostsAllPublicQuery(AllPublicQuery):
+    '''
+    Query to hide is_e_and_e posts
+    '''
+    def queryset(self, model, options, request, **kwargs):
+        (qs, query_data) = super(PostsAllPublicQuery, self).queryset(model, options, request, **kwargs)
+        qs = qs.filter(is_e_and_e=False)
+        return (qs, query_data)
+    
+
+class PostsEAndEQuery(AllPublicQuery):
+    '''
+    Query to show only is_e_and_e posts
+    '''
+    def queryset(self, model, options, request, **kwargs):
+        (qs, query_data) = super(PostsEAndEQuery, self).queryset(model, options, request, **kwargs)
+        qs = qs.filter(is_e_and_e=True)
+        return (qs, query_data)
+
+
+class PostsProgramsQuery(ProgramPublicQuery):
+    '''
+    Query to filter posts by program, excluding is_e_and_e posts
+    '''
+    def queryset(self, model, options, request, **kwargs):
+        (qs, query_data) = super(PostsProgramsQuery, self).queryset(model, options, request, **kwargs)
+        qs = qs.filter(is_e_and_e=False)
+        return (qs, query_data)

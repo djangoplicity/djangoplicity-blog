@@ -49,12 +49,12 @@ class PostTagQuery(CategoryQuery):
         if settings.USE_I18N:
             lang = translation.get_language()
             qs = model.objects.fallback(lang).filter(
-                Q(release_date_lte=datetime.now()) | Q(release_date_isnull=True),
+                Q(release_date__lte=datetime.now()) | Q(release_date__isnull=True),
                 pk__in=qs.values_list('pk', flat=True)
             )
         else:
             qs = qs.filter(
-                Q(release_date_lte=datetime.now()) | Q(release_date_isnull=True)
+                Q(release_date__lte=datetime.now()) | Q(release_date__isnull=True)
             )
 
         return qs, categories

@@ -29,13 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE
 
-
+from django.conf import settings
 from djangoplicity.archives.contrib.queries.defaults import CategoryQuery
 
 from django.db.models import Q
 
 from datetime import datetime
-
+if settings.USE_I18N:
+    from django.utils import translation
 
 class PostTagQuery(CategoryQuery):
     '''
@@ -45,4 +46,15 @@ class PostTagQuery(CategoryQuery):
     def queryset( self, model, options, request, stringparam=None, **kwargs ):
         qs, categories = super(PostTagQuery, self).queryset(model, options, request, stringparam)
 
-        return (qs.filter(Q(release_date__lte=datetime.now()) | Q(release_date__isnull=True)), categories)
+        if settings.USE_I18N:
+            lang = translation.get_language()
+            qs = model.objects.fallback(lang).filter(
+                Q(release_date_lte=datetime.now()) | Q(release_date_isnull=True),
+                pk__in=qs.values_list('pk', flat=True)
+            )
+        else:
+            qs = qs.filter(
+                Q(release_date_lte=datetime.now()) | Q(release_date_isnull=True)
+            )
+
+        return qs, categories

@@ -40,6 +40,8 @@ from djangoplicity.contrib import admin as dpadmin
 from djangoplicity.blog.models import Author, AuthorDescription, Category, Post, PostProxy, Tag
 from djangoplicity.contrib.admin import CleanHTMLAdmin
 from modeltranslation.admin import TranslationAdmin
+from djangoplicity.metadata.admin_actions import SetProgramMixin
+from djangoplicity.metadata.models import Program
 
 
 class AuthorAdmin(TranslationAdmin):
@@ -66,11 +68,11 @@ def view_online_post(post):
     return format_html('<a href="{}">View online</a>', reverse('blog_detail', args=[post.slug]))
 
 
-class PostAdmin(dpadmin.DjangoplicityModelAdmin, CleanHTMLAdmin, RenameAdmin):
-    filter_horizontal = ('authors', 'tags')
+class PostAdmin(dpadmin.DjangoplicityModelAdmin, CleanHTMLAdmin, RenameAdmin, SetProgramMixin):
+    filter_horizontal = ('authors', 'tags', 'programs')
     inlines = (AuthorDescriptionInline, )
-    list_display = ('slug', 'title', 'category', 'release_date', 'published', view_online_post)
-    list_filter = ('category', 'authors', 'tags')
+    list_display = ('slug', 'title', 'category', 'release_date', 'published', 'get_programs', 'is_e_and_e', view_online_post)
+    list_filter = ('category', 'authors', 'tags', 'programs', 'is_e_and_e')
     raw_id_fields = ('banner', )
     readonly_fields = ('last_modified', 'created')
     richtext_fields = ('body', 'discover_box', 'numbers_box', 'profile', 'links')
@@ -78,7 +80,15 @@ class PostAdmin(dpadmin.DjangoplicityModelAdmin, CleanHTMLAdmin, RenameAdmin):
     fieldsets = (
         (
            None,
-           {'fields': ('slug', 'release_date', 'published', ('created', 'last_modified'))}
+           {'fields': ('slug', ('created', 'last_modified'))}
+        ),
+        ( 
+            'Publishing', 
+            {'fields': ( 'published', 'is_e_and_e', 'release_date' )} 
+        ),
+        (
+            'Programs', 
+            {'fields': ('programs',)},
         ),
         (
             'Content',
@@ -90,6 +100,16 @@ class PostAdmin(dpadmin.DjangoplicityModelAdmin, CleanHTMLAdmin, RenameAdmin):
             {'fields': ('category', 'tags')},
         )
     )
+
+    def get_actions(self, request):
+        """
+        Dynamically add admin actions for setting the programs
+        """
+        actions = super(PostAdmin, self).get_actions(request)
+        actions.update(
+            dict([self._make_program_action(c) for c in Program.objects.filter(
+                types__name='post').order_by('name')]))
+        return actions
 
 def view_online_translation_post(post):
     return format_html('<a href="{}?lang={}">View online</a>', post.get_absolute_url(), post.lang)
@@ -117,6 +137,16 @@ class PostProxyAdmin(RenameAdmin, dpadmin.DjangoplicityModelAdmin, TranslationDu
     raw_id_fields = ('source',)
     richtext_fields = PostAdmin.richtext_fields
     readonly_fields = ['release_date', 'created', 'last_modified']
+
+    def get_actions(self, request):
+        """
+        Dynamically add admin actions for setting the programs
+        """
+        actions = super(PostAdmin, self).get_actions(request)
+        actions.update(
+            dict([self._make_program_action(c) for c in Program.objects.filter(
+                types__name='post').order_by('name')]))
+        return actions
 
     def get_readonly_fields(self, request, obj=None):
         # When we are editing we disallow updating the slug to prevent duplication of the translation (The slug is the PK)
